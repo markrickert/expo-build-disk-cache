@@ -5,17 +5,24 @@ import type { ResolveBuildCacheProps } from "./types/buildCacheProvider.ts";
 export const filePrefix = "fingerprint.";
 export const devClientSuffix = ".dev-client";
 
+/**
+ * `abi` names the one ABI a single-ABI Android build carries, giving
+ * `fingerprint.<hash>.<abi>[.dev-client]`. Builds that carry every ABI leave it out.
+ */
+type CacheKeyProps = ResolveBuildCacheProps & { abi?: string };
+
 export function getTagName({
 	fingerprintHash,
 	projectRoot,
 	runOptions,
-}: Pick<ResolveBuildCacheProps, "fingerprintHash" | "projectRoot" | "runOptions">): string {
+	abi,
+}: Pick<CacheKeyProps, "fingerprintHash" | "projectRoot" | "runOptions" | "abi">): string {
 	const isDevClient = isDevClientBuild({ projectRoot, runOptions });
 
-	return `${filePrefix}${fingerprintHash}${isDevClient ? devClientSuffix : ""}`;
+	return `${filePrefix}${fingerprintHash}${abi ? `.${abi}` : ""}${isDevClient ? devClientSuffix : ""}`;
 }
 
-interface GetAppPath extends ResolveBuildCacheProps {
+interface GetAppPath extends CacheKeyProps {
 	cacheDir: string;
 }
 
@@ -25,10 +32,11 @@ export function getCachedAppPath({
 	projectRoot,
 	runOptions,
 	cacheDir,
+	abi,
 }: GetAppPath): string {
 	return path.join(
 		path.resolve(cacheDir),
-		getFileName({ runOptions, projectRoot, fingerprintHash, platform }),
+		getFileName({ runOptions, projectRoot, fingerprintHash, platform, abi }),
 	);
 }
 
@@ -37,11 +45,13 @@ export const getFileName = ({
 	projectRoot,
 	runOptions,
 	platform,
-}: ResolveBuildCacheProps) =>
+	abi,
+}: CacheKeyProps) =>
 	`${getTagName({
 		fingerprintHash,
 		projectRoot,
 		runOptions,
+		abi,
 	})}.${platform === "ios" ? "app" : "apk"}`;
 
 export function isDevClientBuild({

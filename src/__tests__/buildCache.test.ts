@@ -137,6 +137,24 @@ describe("getCachedAppPath", () => {
 		});
 	});
 
+	it.each([
+		[{ expo: "55.0.0" }, `fingerprint.${hash}.armeabi-v7a.apk`],
+		[{ "expo-dev-client": "55.0.0" }, `fingerprint.${hash}.armeabi-v7a${devClientSuffix}.apk`],
+	])("puts the ABI after the fingerprint for %p", async (dependencies, fileName) => {
+		await withPackageJson({ dependencies }, (projectRoot) => {
+			const result = getCachedAppPath({
+				projectRoot,
+				platform: "android",
+				runOptions: { variant: "debug" },
+				fingerprintHash: hash,
+				cacheDir: "/tmp/cache",
+				abi: "armeabi-v7a",
+			});
+
+			expect(result).toBe(path.join("/tmp/cache", fileName));
+		});
+	});
+
 	it("resolves a relative cacheDir to an absolute path", async () => {
 		await withPackageJson({ dependencies: { expo: "55.0.0" } }, (projectRoot) => {
 			const result = getCachedAppPath({

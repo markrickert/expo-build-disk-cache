@@ -8,6 +8,9 @@ describe("isValidFile", () => {
 		// Valid cases
 		[[filePrefix, uuid, ".apk"].join(""), true],
 		[[filePrefix, uuid, devClientSuffix, ".apk"].join(""), true],
+		// Single-ABI Android builds must stay visible to the GC.
+		[[filePrefix, uuid, ".arm64-v8a.apk"].join(""), true],
+		[[filePrefix, uuid, ".armeabi-v7a", devClientSuffix, ".apk"].join(""), true],
 
 		[[filePrefix, uuid, ".app"].join(""), true],
 		[[filePrefix, uuid, devClientSuffix, ".app"].join(""), true],

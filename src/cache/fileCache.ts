@@ -16,9 +16,10 @@ export type CleanupResult = { deletedCount: number; deletedSize: number };
 export const fileCacheFactory = (
 	args: UploadBuildCacheProps | ResolveBuildCacheProps,
 	config: Config,
+	abi?: string,
 ) => {
 	const { cacheGcTimeDays, getPath, cacheDir, debug } = config;
-	const appPath = getPath(args);
+	const appPath = getPath(args, abi);
 
 	const cacheWrite = async (buildPath: string): Promise<void> => {
 		await fs.mkdir(path.dirname(appPath), { recursive: true });

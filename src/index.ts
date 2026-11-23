@@ -1,3 +1,4 @@
+import { resolveAndroidAbiSuffix } from "./androidAbi.ts";
 import { fileCacheFactory } from "./cache/fileCache.ts";
 import {
 	type Config,
@@ -11,11 +12,20 @@ import { getRemotePlugin } from "./remotePlugin/getRemotePlugin.ts";
 import type { ResolvedProviderPlugin } from "./remotePlugin/resolveProviderPlugin.ts";
 import { texts } from "./texts.ts";
 import type {
+	AndroidRunOptions,
 	BuildCacheProviderPlugin,
 	ResolveBuildCacheProps,
 	UploadBuildCacheProps,
 } from "./types/buildCacheProvider.ts";
 import { tryCatch } from "./utils/tryCatch.ts";
+
+/** See {@link resolveAndroidAbiSuffix}. iOS has none: Expo CLI caches iOS simulator builds alone. */
+async function resolveAbi(args: ResolveBuildCacheProps): Promise<string | null> {
+	if (args.platform !== "android") return "";
+	const abi = await resolveAndroidAbiSuffix(args.runOptions as AndroidRunOptions);
+	if (abi === null) logger.log(texts.abi.unknown);
+	return abi;
+}
 
 /**
  * Loads the configured remote provider, if any. Any failure is logged and degrades to "no remote
@@ -40,7 +50,9 @@ async function withRemotePlugin<T>(
 
 async function readFromDisk(args: ResolveBuildCacheProps, config: Config): Promise<string | null> {
 	try {
-		const fileCache = fileCacheFactory(args, config);
+		const abi = await resolveAbi(args);
+		if (abi === null) return null;
+		const fileCache = fileCacheFactory(args, config, abi);
 
 		if (await fileCache.has()) {
 			logger.log(texts.read.hit);
@@ -49,6 +61,9 @@ async function readFromDisk(args: ResolveBuildCacheProps, config: Config): Promi
 			return fileCache.getPath();
 		}
 		logger.log(texts.read.miss);
+		// Remote providers key builds by fingerprint alone, so a single-ABI APK must never be
+		// stored under that key or taken from it: its ABI cannot be checked after download.
+		if (abi) return null;
 
 		return await withRemotePlugin(
 			args,
@@ -71,7 +86,9 @@ async function readFromDisk(args: ResolveBuildCacheProps, config: Config): Promi
 async function writeToDisk(args: UploadBuildCacheProps, config: Config): Promise<string | null> {
 	let cachePath = "";
 	try {
-		const fileCache = fileCacheFactory(args, config);
+		const abi = await resolveAbi(args);
+		if (abi === null) return null;
+		const fileCache = fileCacheFactory(args, config, abi);
 		cachePath = fileCache.getPath();
 
 		if (await fileCache.has()) {
@@ -85,12 +102,14 @@ async function writeToDisk(args: UploadBuildCacheProps, config: Config): Promise
 		logger.log(texts.write.savedToDisk(cachePath));
 		await fileCache.printStats();
 
-		await withRemotePlugin(
-			args,
-			config,
-			(plugin) => plugin.uploadBuildCache(args, config.remoteOptions),
-			() => texts.write.remoteError,
-		);
+		if (!abi) {
+			await withRemotePlugin(
+				args,
+				config,
+				(plugin) => plugin.uploadBuildCache(args, config.remoteOptions),
+				() => texts.write.remoteError,
+			);
+		}
 		return cachePath;
 	} catch (error) {
 		logger.error(texts.write.error(cachePath, error));

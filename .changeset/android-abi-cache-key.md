@@ -1,0 +1,5 @@
+---
+"expo-build-disk-cache": patch
+---
+
+Fix Android debug builds being reused across devices with different CPU architectures (ABIs). `expo run:android` builds a debug APK only for the ABI of the connected device. A phone or emulator is usually `arm64-v8a`, while many Android TV boxes are 32-bit `armeabi-v7a`. Both builds have the same fingerprint, so the cache handed the phone's APK to the TV box and the install failed with `INSTALL_FAILED_NO_MATCHING_ABIS`. Android debug builds now include the ABI in their cache file name, for example `fingerprint.<hash>.arm64-v8a.apk`, so each ABI gets its own entry. Release and `--all-arch` builds contain every ABI and keep their old names. If the target ABI can't be determined (no device connected, connected devices with different ABIs, or adb failing), the disk cache is skipped for that run. Remote plugins are skipped for Android debug builds, because their keys carry no ABI; release and `--all-arch` builds still use them. Existing Android debug entries won't be reused and are removed by the normal cache cleanup.

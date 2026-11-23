@@ -63,7 +63,7 @@ export type Config = {
 	cacheGcTimeDays: number;
 	remotePlugin?: string;
 	remoteOptions?: Record<string, unknown>;
-	getPath: (args: ResolveBuildCacheProps) => string;
+	getPath: (args: ResolveBuildCacheProps, abi?: string) => string;
 };
 
 /**
@@ -74,8 +74,8 @@ const defaultConfig = {
 	enable: true,
 	debug: false,
 	cacheGcTimeDays: 7,
-	getPath: (args: ResolveBuildCacheProps) =>
-		getCachedAppPath({ ...args, cacheDir: getDefaultCacheDir() }),
+	getPath: (args: ResolveBuildCacheProps, abi?: string) =>
+		getCachedAppPath({ ...args, abi, cacheDir: getDefaultCacheDir() }),
 } satisfies Config;
 
 const ENV_PREFIX = "DISK_CACHE_" as const;
@@ -164,7 +164,8 @@ function parseConfig(
 		// keeps working for consumers (and matches the shape the schema used to produce).
 		...(remotePlugin !== undefined ? { remotePlugin } : {}),
 		...(remoteOptions !== undefined ? { remoteOptions } : {}),
-		getPath: (args: ResolveBuildCacheProps) => getCachedAppPath({ ...args, cacheDir }),
+		getPath: (args: ResolveBuildCacheProps, abi?: string) =>
+			getCachedAppPath({ ...args, abi, cacheDir }),
 	};
 
 	return { config, issues: read.issues };

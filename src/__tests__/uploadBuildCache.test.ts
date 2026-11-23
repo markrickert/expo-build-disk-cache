@@ -46,7 +46,7 @@ describe("uploadBuildCache", () => {
 			args,
 		);
 		expect(result).toBeString();
-		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.apk`)).toBeTrue();
+		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.arm64-v8a.apk`)).toBeTrue();
 
 		const appFile = file(result as string);
 		expect(await appFile.exists()).toBeTrue();
@@ -83,7 +83,7 @@ describe("uploadBuildCache", () => {
 		);
 		expect(result).toBeString();
 		expect(result).toInclude(args.cacheDir.replace("~", os.homedir));
-		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.apk`)).toBeTrue();
+		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.arm64-v8a.apk`)).toBeTrue();
 
 		const appFile = file(result as string);
 		expect(await appFile.exists()).toBeTrue();
@@ -111,7 +111,7 @@ describe("uploadBuildCache", () => {
 
 		const result = await DiskBuildCacheProvider.uploadBuildCache(options, args);
 		expect(result).toBeString();
-		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.apk`)).toBeTrue();
+		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.arm64-v8a.apk`)).toBeTrue();
 		const appFile = file(result as string);
 		expect(await appFile.exists()).toBeTrue();
 	});

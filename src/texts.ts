@@ -14,6 +14,10 @@ export const texts = {
 				error instanceof Error ? error.message : "Unknown error"
 			}`,
 	},
+	abi: {
+		unknown:
+			"💾 Skipping the disk cache: no single Android ABI to build for (connect one device, or devices of one ABI)",
+	},
 	remotePlugin: {
 		// The reason is part of the message because it is actionable (a missing package, a plugin
 		// that exports the wrong shape) and would otherwise only be visible with debug enabled.

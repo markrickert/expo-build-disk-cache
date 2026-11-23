@@ -21,7 +21,7 @@ describe("resolveBuildCache", () => {
 
 		const result = await DiskBuildCacheProvider.uploadBuildCache(options, args);
 		expect(result).toBeString();
-		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.apk`)).toBeTrue();
+		expect(result?.endsWith(`/fingerprint.${fingerprintHash}.arm64-v8a.apk`)).toBeTrue();
 	});
 
 	it("should resolve build cache without crashing when args are defined", async () => {
