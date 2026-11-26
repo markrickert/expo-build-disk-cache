@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import { withProject } from "../../__tests__/withProject.ts";
 import {
 	importPluginFile,
 	resolvePluginFilePath,
@@ -14,26 +13,6 @@ module.exports = {
   uploadBuildCache: async () => "/uploaded",
 };
 `;
-
-/** Creates a temp project, lets the test populate it, and cleans it up afterwards. */
-async function withProject(
-	files: Record<string, string>,
-	test: (projectRoot: string) => void | Promise<void>,
-) {
-	const projectRoot = await fs.realpath(
-		await fs.mkdtemp(path.join(os.tmpdir(), "expo-disk-cache-plugin-")),
-	);
-	try {
-		for (const [file, content] of Object.entries(files)) {
-			const filePath = path.join(projectRoot, file);
-			await fs.mkdir(path.dirname(filePath), { recursive: true });
-			await fs.writeFile(filePath, content);
-		}
-		await test(projectRoot);
-	} finally {
-		await fs.rm(projectRoot, { recursive: true, force: true });
-	}
-}
 
 /** Files that make `name` resolvable as an installed package exporting a valid plugin. */
 const nodeModule = (name: string, source = validPluginSource) => ({

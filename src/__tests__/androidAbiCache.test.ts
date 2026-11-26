@@ -1,5 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import fs from "node:fs/promises";
+import { describe, expect, it } from "bun:test";
 import os from "node:os";
 import path from "node:path";
 import DiskBuildCacheProvider from "../index.ts";
@@ -8,6 +7,7 @@ import type { ResolveBuildCacheProps } from "../types/buildCacheProvider.ts";
 import { mockAppBuild } from "./mockAppBuild.ts";
 import { defaultStubDevices, stubAdbDevices } from "./stubAdb.ts";
 import { mockLogger } from "./test-setup.ts";
+import { withProject } from "./withProject.ts";
 
 const arm64Emulator = defaultStubDevices;
 // A 32-bit userland Android TV box, which refuses arm64 APKs with INSTALL_FAILED_NO_MATCHING_ABIS.
@@ -86,18 +86,10 @@ describe("Android ABI cache keys", () => {
 		const remoteCalls: string[] = [];
 		(globalThis as { remoteCalls?: string[] }).remoteCalls = remoteCalls;
 
-		let projectRoot = "";
-		beforeAll(async () => {
-			projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "expo-disk-cache-abi-remote-"));
-			await fs.writeFile(
-				path.join(projectRoot, "provider.js"),
-				`module.exports = {
-					resolveBuildCache: async () => { globalThis.remoteCalls.push("resolve"); return null; },
-					uploadBuildCache: async () => { globalThis.remoteCalls.push("upload"); return null; },
-				};`,
-			);
-		});
-		afterAll(() => fs.rm(projectRoot, { recursive: true, force: true }));
+		const providerSource = `module.exports = {
+			resolveBuildCache: async () => { globalThis.remoteCalls.push("resolve"); return null; },
+			uploadBuildCache: async () => { globalThis.remoteCalls.push("upload"); return null; },
+		};`;
 		const remoteConfig = { ...config, remotePlugin: "./provider.js" };
 
 		// Remote providers key by fingerprint alone, so a single-ABI APK could reach any device.
@@ -106,12 +98,14 @@ describe("Android ABI cache keys", () => {
 			["is skipped for flavored single-ABI builds", "freeDebug", []],
 			["still runs for builds that carry every ABI", "release", ["resolve", "upload"]],
 		])("%s", async (_, variant, expected) => {
-			const props = { ...debugBuild(), projectRoot, runOptions: { variant } };
-			remoteCalls.length = 0;
+			await withProject({ "provider.js": providerSource }, async (projectRoot) => {
+				const props = { ...debugBuild(), projectRoot, runOptions: { variant } };
+				remoteCalls.length = 0;
 
-			await DiskBuildCacheProvider.resolveBuildCache(props, remoteConfig);
-			await upload(props, remoteConfig);
-			expect(remoteCalls).toEqual(expected);
+				await DiskBuildCacheProvider.resolveBuildCache(props, remoteConfig);
+				await upload(props, remoteConfig);
+				expect(remoteCalls).toEqual(expected);
+			});
 		});
 	});
 });
